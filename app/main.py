@@ -1,10 +1,11 @@
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_user
 from app.llm import get_ai_reply
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from app.llm import stream_ai_reply
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -16,7 +17,7 @@ app = FastAPI(title="AI Chatbot API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-app = FastAPI(title="AI Chatbot API")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 def health_check():
@@ -164,3 +165,7 @@ def get_conversation(
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     return conversation
+
+@app.get("/chat")
+def serve_chat_ui():
+    return FileResponse("static/index.html")
