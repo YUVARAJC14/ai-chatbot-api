@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Support Chatbot</title>
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+  }
+
+  #app {
+    width: 100%;
+    max-width: 480px;
+    height: 680px;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  #header .avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  #header .info h1 {
+    font-size: 15px;
+    margin: 0;
+    font-weight: 600;
+  }
+
+  #header .info p {
+    font-size: 12px;
+    margin: 2px 0 0;
+    opacity: 0.85;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  #header .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #4ade80;
+    display: inline-block;
+  }
+
+  #setup {
+    padding: 16px 20px;
+    background: #f8f8fc;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    gap: 8px;
+  }
+
+  #api-key-input {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    font-size: 13px;
+    outline: none;
+  }
+
+  #api-key-input:focus {
+    border-color: #764ba2;
+  }
+
+  #setup button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 10px;
+    background: #667eea;
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  #setup button:hover { background: #5568d3; }
+
+  #chat-window {
+    flex: 1;
+    padding: 18px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #f4f5fa;
+  }
+
+  #chat-window::-webkit-scrollbar { width: 6px; }
+  #chat-window::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+  .row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    animation: rise 0.25s ease;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .row.user { flex-direction: row-reverse; }
+
+  .bubble-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: white;
+  }
+
+  .row.assistant .bubble-avatar { background: linear-gradient(135deg, #667eea, #764ba2); }
+  .row.user .bubble-avatar { background: #333; }
+
+  .msg {
+    padding: 10px 14px;
+    border-radius: 16px;
+    max-width: 72%;
+    line-height: 1.45;
+    font-size: 14px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+
+  .row.user .msg {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+
+  .row.assistant .msg {
+    background: white;
+    color: #222;
+    border: 1px solid #eee;
+    border-bottom-left-radius: 4px;
+  }
+
+  .typing-dots {
+    display: inline-flex;
+    gap: 3px;
+    padding: 2px 0;
+  }
+
+  .typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #999;
+    animation: blink 1.2s infinite ease-in-out;
+  }
+
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes blink {
+    0%, 80%, 100% { opacity: 0.3; }
+    40% { opacity: 1; }
+  }
+
+  #input-row {
+    display: flex;
+    gap: 8px;
+    padding: 14px 16px;
+    background: white;
+    border-top: 1px solid #eee;
+  }
+
+  #message-input {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 24px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    outline: none;
+  }
+
+  #message-input:focus { border-color: #764ba2; }
+  #message-input:disabled { background: #f4f4f4; }
+
+  #send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s, opacity 0.2s;
+    flex-shrink: 0;
+  }
+
+  #send-btn:hover:not(:disabled) { transform: scale(1.06); }
+  #send-btn:disabled { opacity: 0.4; cursor: default; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="header">
+    <div class="avatar">🤖</div>
+    <div class="info">
+      <h1>AI Support Assistant</h1>
+      <p><span class="dot"></span> Online</p>
+    </div>
+  </div>
+
+  <div id="setup">
+    <input type="text" id="api-key-input" placeholder="Enter your API key">
+    <button onclick="startConversation()">Connect</button>
+  </div>
+
+  <div id="chat-window"></div>
+
+  <div id="input-row">
+    <input type="text" id="message-input" placeholder="Type a message..." disabled>
+    <button id="send-btn" onclick="sendMessage()" disabled>➤</button>
+  </div>
+</div>
+
+<script>
+  let apiKey = "";
+  let conversationId = null;
+  const chatWindow = document.getElementById("chat-window");
+  const messageInput = document.getElementById("message-input");
+  const sendBtn = document.getElementById("send-btn");
+
+  async function startConversation() {
+    apiKey = document.getElementById("api-key-input").value.trim();
+    if (!apiKey) {
+      alert("Enter an API key first");
+      return;
+    }
+
+    const res = await fetch("/conversations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": apiKey
+      },
+      body: JSON.stringify({ title: "Web chat" })
+    });
+
+    if (!res.ok) {
+      alert("Failed to start conversation. Check your API key.");
+      return;
+    }
+
+    const data = await res.json();
+    conversationId = data.id;
+    messageInput.disabled = false;
+    sendBtn.disabled = false;
+    document.getElementById("api-key-input").disabled = true;
+    addMessage("assistant", "Conversation started. Ask me anything.");
+  }
+
+  function addMessage(role, text) {
+    const row = document.createElement("div");
+    row.className = "row " + role;
+
+    const avatar = document.createElement("div");
+    avatar.className = "bubble-avatar";
+    avatar.textContent = role === "user" ? "You" [0] : "AI";
+
+    const bubble = document.createElement("div");
+    bubble.className = "msg";
+    bubble.textContent = text;
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    chatWindow.appendChild(row);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+    return bubble;
+  }
+
+  function addTypingIndicator() {
+    const row = document.createElement("div");
+    row.className = "row assistant";
+    row.id = "typing-row";
+
+    const avatar = document.createElement("div");
+    avatar.className = "bubble-avatar";
+    avatar.textContent = "AI";
+
+    const bubble = document.createElement("div");
+    bubble.className = "msg";
+    bubble.innerHTML = '<span class="typing-dots"><span></span><span></span><span></span></span>';
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    chatWindow.appendChild(row);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }
+
+  function removeTypingIndicator() {
+    const row = document.getElementById("typing-row");
+    if (row) row.remove();
+  }
+
+  async function sendMessage() {
+    const content = messageInput.value.trim();
+    if (!content || !conversationId) return;
+
+    addMessage("user", content);
+    messageInput.value = "";
+    sendBtn.disabled = true;
+    addTypingIndicator();
+
+    const res = await fetch(`/conversations/${conversationId}/messages/stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": apiKey
+      },
+      body: JSON.stringify({ content })
+    });
+
+    removeTypingIndicator();
+
+    if (!res.ok || !res.body) {
+      addMessage("assistant", "Error getting reply.");
+      sendBtn.disabled = false;
+      return;
+    }
+
+    const assistantBubble = addMessage("assistant", "");
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n\n");
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const chunk = line.slice(6);
+          assistantBubble.textContent += chunk;
+          chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+      }
+    }
+
+    sendBtn.disabled = false;
+    messageInput.focus();
+  }
+
+  messageInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendMessage();
+  });
+</script>
+
+</body>
+</html>
